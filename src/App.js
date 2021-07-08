@@ -1,181 +1,160 @@
-import React from 'react'
+import React, { useState, useEffect, useRef } from "react";
+import { CSSTransition, TransitionGroup } from "react-transition-group";
 
-import { CSSTransition, TransitionGroup } from 'react-transition-group'
+import "./app.css";
 
-import './app.css'
+function NewApp() {
+	const [state, setState] = useState({
+		who: "",
+		what: "",
+		characters: [
+			{
+				id: 1,
+				who: "Dude",
+				what: "Noting",
+				cool: 13,
+			},
+		],
+	});
 
-class App extends React.Component {
-   /**
-    * LET'S ROCK
-    */
-   constructor(props) {
-      super(props)
+	const linkRef = useRef(null);
 
-      this.input = React.createRef()
+	useEffect(() => {
+		fetch("https://api.myjson.com/bins/zg7ze")
+			.then((res) => res.json())
+			.then((json) => this.setState({ characters: json }));
+	}, []);
 
-      this.state = {
-         newWho: '',
-         newWat: '',
-         characters: [{
-            "who": "Finn the Human",
-            "wat": "A silly ass motherfucker",
-            "cool": 42,
-        },{
-            "who": "Jake the",
-            "wat": "Dirty as frog",
-            "cool": 12,
-        }]
-      }
-   }
+	const handleWho = (e) => {
+		setState({
+			...state,
+			who: e.target.value,
+		});
+	};
 
-   /**
-    * LOAD MY DUDES
-    */
-   // componentDidMount = () => {
-   //    fetch('https://api.myjson.com/bins/zg7ze')
-   //       .then(res => res.json())
-   //       .then(json => this.setState({ characters: json }))
-   // }
+	/**
+	 * SAVE NEW WAT
+	 */
+	const handleWat = (e) => {
+		setState({
+			...state,
+			what: e.target.value,
+		});
+	};
 
-   /**
-    * ListOfDudes "COMPONENT"
-    */
-   listOfDudes = () => {
-      return this.state.characters.map(dude => (
-         <CSSTransition key={dude.id} timeout={200} classNames="dude">
-            <li key={dude.id} className="dude">
-               <a className="ctrl" onClick={() => this.removeDude(dude)}>
-                  x
-               </a>
+	/**
+	 * UPDATE COOL
+	 */
+	const handleCool = (dude, e) => {
+		const cool = +e.target.value;
 
-               <article
-                  className={
-                     dude.cool < 10 ? 'faded' : dude.cool > 50 ? 'gold' : ''
-                  }
-               >
-                  {dude.who}
-                  <span>{dude.wat}</span>
-               </article>
+		setState((state) => {
+			return {
+				...state,
+				characters: state.characters.map((char) =>
+					char === dude ? { ...dude, cool } : char
+				),
+			};
+		});
+	};
 
-               <input
-                  className="ctrl"
-                  type="number"
-                  value={dude.cool}
-                  onChange={this.handleCool(dude)}
-               />
-            </li>
-         </CSSTransition>
-      ))
-   }
+	/**
+	 * REMOVE DUDE
+	 */
+	const removeDude = (dude) => {
+		setState((state) => {
+			return {
+				...state,
+				characters: state.characters.filter((item) => item !== dude),
+			};
+		});
+	};
 
-   /**
-    * SAVE NEW WHO
-    */
-   handleWho = event => {
-      this.setState({ newWho: event.target.value })
-   }
+	/**
+	 * RESET FORM
+	 */
+	const resetForm = () => {
+		setState({
+			...state,
+			who: "",
+			what: "",
+		});
 
-   /**
-    * SAVE NEW WAT
-    */
-   handleWat = event => {
-      this.setState({ newWat: event.target.value })
-   }
+		linkRef.current.focus();
+	};
 
-   /**
-    * UPDATE COOL
-    */
-   handleCool = dude => event => {
-      const cool = +event.target.value
+	/**
+	 * ADD NEW DUDE
+	 */
+	const handleSubmit = (event) => {
+		if (event.key === "Enter" && state.who && state.what) {
+			const newDude = {
+				id: Math.max(...state.characters.map((d) => d.id)) + 1,
+				who: state.who,
+				what: state.what,
+				cool: 15,
+			};
 
-      this.setState(state => {
-         return {
-            characters: state.characters.map(item =>
-               item === dude ? { ...dude, cool } : item
-            )
-         }
-      })
-   }
+			setState((prevState) => ({
+				...prevState,
+				characters: prevState.characters.push(newDude),
+			}));
+			console.log(state);
 
-   /**
-    * REMOVE DUDE
-    */
-   removeDude = dude => {
-      this.setState(state => {
-         return {
-            characters: state.characters.filter(item => item !== dude)
-         }
-      })
-   }
+			resetForm();
+		}
+	};
 
-   /**
-    * ADD NEW DUDE
-    */
-   handleSubmit = event => {
-      if (event.key === 'Enter' && this.state.newWho && this.state.newWat) {
-         this.setState(state => {
-            const newDude = {
-               id: Math.max(...state.characters.map(d => d.id)) + 1,
-               who: this.state.newWho,
-               wat: this.state.newWat,
-               cool: 15
-            }
+	return (
+		<div>
+			<TransitionGroup component="ul">
+				{!!state.characters &&
+					state.characters.map((char) => (
+						<CSSTransition key={char.id} timeout={200} classNames="dude">
+							<li key={char.id} className="dude">
+								<a className="ctrl" onClick={() => removeDude(char)}>
+									x
+								</a>
 
-            return {
-               characters: [...state.characters, newDude]
-            }
-         })
+								<article
+									className={
+										char.cool < 10 ? "faded" : char.cool > 50 ? "gold" : ""
+									}
+								>
+									{char.who}
+									<span>{char.what}</span>
+								</article>
 
-         this.resetForm()
-      }
-   }
+								<input
+									className="ctrl"
+									type="number"
+									value={char.cool}
+									onChange={(e) => handleCool(char, e)}
+								/>
+							</li>
+						</CSSTransition>
+					))}
+			</TransitionGroup>
 
-   /**
-    * RESET FORM
-    */
-   resetForm = () => {
-      this.setState({
-         newWho: '',
-         newWat: ''
-      })
+			<form className="add-new" onKeyPress={handleSubmit}>
+				<input
+					autoFocus
+					type="text"
+					ref={linkRef}
+					value={state.who}
+					onChange={handleWho}
+				/>
 
-      this.input.current.focus()
-   }
+				<input type="text" value={state.what} onChange={(e) => handleWat(e)} />
+			</form>
 
-   /**
-    * TEMPLATE
-    */
-   render() {
-      return (
-         <div>
-            <TransitionGroup component="ul">
-               {this.listOfDudes()}
-            </TransitionGroup>
-
-            <form className="add-new" onKeyPress={this.handleSubmit}>
-               <input
-                  autoFocus
-                  type="text"
-                  ref={this.input}
-                  value={this.state.newWho}
-                  onChange={this.handleWho}
-               />
-
-               <input
-                  type="text"
-                  value={this.state.newWat}
-                  onChange={this.handleWat}
-               />
-            </form>
-
-            <p className="preview">
-               {this.state.newWho}
-               <br />
-               <small>{this.state.newWat}</small>
-            </p>
-         </div>
-      )
-   }
+			<p className="preview">
+				{state.who}
+				<br />
+				<small>{state.what}</small>
+			</p>
+		</div>
+	);
 }
 
-export default App
+export default NewApp;
